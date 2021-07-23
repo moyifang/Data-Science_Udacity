@@ -1,0 +1,105 @@
+import csv
+def read_csv(filename):
+    with open(filename, 'rt') as f:
+        reader = csv.DictReader(f)
+        return list(reader)
+enrollments = read_csv('D:/python/data/enrollments.csv')
+daily_engagement = read_csv('D:/python/data/daily_engagement.csv')
+project_submissions = read_csv('D:/python/data/project_submissions.csv')
+
+# clean up the data types
+
+from datetime import datetime as dt
+# clean date func
+
+def parse_date(date):
+    if date == '':
+        return None
+    else:
+        return dt.strptime(date, '%Y-%m-%d')
+
+# clean int func
+def parse_maybe_int(i):
+    if i == '':
+        return None
+    else:
+        return int(i)
+# clean up the data types in the enrollments table
+for i in enrollments:
+    i['cancel_date'] = parse_date(i['cancel_date'])
+    i['days_to_cancel'] = parse_maybe_int(i['days_to_cancel'])
+    i['is_canceled'] = i['is_canceled'] == 'True' # 转换为布尔值
+    i['is_udacity'] = i['is_udacity'] == 'True'   # 转换为布尔值
+    i['join_date'] = parse_date(i['join_date'])
+
+
+
+# Clean up the data types in the engagement table
+for engagement_record in daily_engagement:
+    engagement_record['lessons_completed'] = int(float(engagement_record['lessons_completed']))
+    engagement_record['num_courses_visited'] = int(float(engagement_record['num_courses_visited']))
+    engagement_record['projects_completed'] = int(float(engagement_record['projects_completed']))
+    engagement_record['total_minutes_visited'] = float(engagement_record['total_minutes_visited'])
+    engagement_record['utc_date'] = parse_date(engagement_record['utc_date'])
+
+# Clean up the data types in the submissions table
+for submission in project_submissions:
+    submission['completion_date'] = parse_date(submission['completion_date'])
+    submission['creation_date'] = parse_date(submission['creation_date'])
+# Investigating the Data
+for i in daily_engagement:
+    i['account_key'] = i['acct']
+    del(i['acct'])
+
+def unique_data(dataset, n):
+    name_unique = set()
+    for i in dataset:
+     name_unique.add(i[n])
+    return(name_unique)
+unique_enrollment_students = []
+unique_engagement_students = []
+unique_submission_students = []
+enrollment_num_unique_students = 0
+engagement_num_unique_students = 0
+submission_num_unique_students = 0
+unique_enrollment_students = unique_data(enrollments, 'account_key')
+unique_engagement_students = unique_data(daily_engagement, 'account_key')
+unique_submission_students = unique_data(project_submissions, 'account_key')
+enrollment_num_unique_students = int(len(unique_enrollment_students))
+engagement_num_unique_students = int(len(unique_engagement_students))
+submission_num_unique_students = int(len(unique_submission_students))
+# print(enrollment_num_unique_students)
+# print(engagement_num_unique_students)
+# print(submission_num_unique_students)
+
+# Missing Engagement Records
+# Find one student enrollments where the student is missing from the daily engagement table
+
+for i in enrollments:
+    student = i['account_key']
+    if student not in unique_engagement_students:
+       # print(i)
+        break
+
+num_prob_students = 0
+for i in enrollments:
+    student = i['account_key']
+    if student not in unique_engagement_students \
+            and i['join_date'] != i['cancel_date']:
+        num_prob_students += 1
+# print(num_prob_students)
+
+udacity_test_accounts = set()
+for i in enrollments:
+    if  i['is_udacity']:
+        udacity_test_accounts.add(i['account_key'])
+
+print('Number of Udacity test accounts:')
+print(len(udacity_test_accounts))
+
+def remove_udacity_acc(data):
+    non_udacity_data=[]
+    for i in data:
+        if i['account_key'] not in udacity_test_accounts:
+            non_udacity_data.append(i)
+    return non_udacity_data
